@@ -1,0 +1,21 @@
+name: ApexGPU CI
+on: [push, pull_request]
+jobs:
+  software-verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and unit test golden model
+        run: make model-test
+      - name: Differential randomized regression
+        run: make regression
+      - name: Telemetry demo
+        run: make demo
+  rtl-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Icarus Verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: RTL smoke test
+        run: make rtl-test
