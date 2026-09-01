@@ -1,70 +1,42 @@
-# Next Steps: turning the MVP into a standout project
+# Next Steps after M6
 
-The MVP already has enough moving pieces to discuss architecture and verification. The best way to extend it is **depth before breadth**.
+M4-M6 close the most important MVP gap: the actual RTL is now driven by randomized programs, dependencies are controlled by a scoreboard, and four independent warps can hide each other's stalls.
 
-## Milestone 1 — replay random programs in RTL
+## M7 — vector load/store + banked telemetry scratchpad
 
-Highest priority.
+Add:
 
-Take the deterministic vector file produced by `verification/generate_vectors.py` and make the SystemVerilog testbench:
+- `VLOAD` and `VSTORE`;
+- a small banked scratchpad;
+- one address per lane;
+- bank-conflict detection;
+- contiguous/coalesced vs scattered access experiments.
 
-1. initialise all architectural vector registers through the debug port;
-2. issue every encoded instruction;
-3. wait for the final commit;
-4. compare all registers against the expected final state;
-5. dump the seed and VCD path on failure.
+Use synthetic racing telemetry frames as the trace source. Measure cycles per sample and bank conflicts.
 
-Then run 100+ seeds in CI.
+## M8 — functional coverage + mutation testing
 
-**Why this matters:** this closes the loop between the golden model and the actual RTL.
-
-## Milestone 2 — mutation testing
-
-Add compile-time switches that intentionally break:
-
-- source forwarding;
-- masked destination forwarding;
-- signed compare;
-- VABSDELTA overflow behaviour.
-
-Measure how many random programs are needed to catch each bug. Put the results in a small table in the README.
-
-**Why this matters:** it shows that the verification environment is evaluated, not merely present.
-
-## Milestone 3 — functional coverage
-
-Track bins for:
+Track coverage bins for:
 
 - opcode;
+- warp id;
 - mask population count;
-- `dst == src_a` / `dst == src_b`;
-- forwarded A / B / old destination;
-- positive/negative/zero operands;
-- clamp boundary cases.
+- RAW/WAW/old-destination dependency;
+- scoreboard block;
+- WB forwarding;
+- scheduler skip;
+- signed/zero/boundary values.
 
-Cross the important dimensions and stop random regressions only once coverage targets are met.
+Then intentionally break one mechanism at a time and measure how quickly the randomized environment catches it.
 
-## Milestone 4 — 4-warp scheduler
+## M9 — deeper frontend / warp state
 
-Introduce four execution contexts with:
+Replace the one-entry per-warp queue with a small instruction memory and per-warp PC. This is where “warp” becomes more than an execution context and starts behaving like an independently progressing instruction stream.
 
-- per-warp PC;
-- per-warp lane mask;
-- round-robin issue;
-- simple scoreboard.
+## M10 — divergence
 
-This is the point where the design begins to resemble a tiny GPU execution block rather than simply a vector ALU.
+Add a branch instruction and active-lane mask per warp. First implement a simple reconvergence model, then verify nested mask behaviour.
 
-## Milestone 5 — vector memory + telemetry trace
+## Build order
 
-Add vector load/store into a banked scratchpad. Generate synthetic racing telemetry traces and compare:
-
-- scalar accesses;
-- contiguous/coalesced vector accesses;
-- deliberately scattered accesses.
-
-Measure cycles per sample and bank conflicts.
-
-## Suggested build order
-
-Do **not** jump straight to caches or a graphics API. Finish the verification loop first, then add warps, then memory. Each step should create a new class of bugs that your test infrastructure has to learn to detect.
+Do memory before caches. Do coverage before adding lots of ISA. Every new architectural feature should introduce a new failure mode that the verification stack learns to detect.

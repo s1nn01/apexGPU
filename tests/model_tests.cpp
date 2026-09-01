@@ -16,7 +16,7 @@ static void expect_eq(const Vector& a, const Vector& b) { assert(a == b); }
 
 int main() {
     {
-        Instruction i{0xA5, Opcode::VCLAMP, 7, 4, 3, 12345};
+        Instruction i{0xA5, Opcode::VCLAMP, 7, 4, 3, 12345, 3};
         auto decoded = Instruction::decode(i.encode());
         assert(decoded.lane_mask == i.lane_mask);
         assert(decoded.opcode == i.opcode);
@@ -24,6 +24,7 @@ int main() {
         assert(decoded.src_a == i.src_a);
         assert(decoded.src_b == i.src_b);
         assert(decoded.immediate == i.immediate);
+        assert(decoded.warp_id == i.warp_id);
     }
 
     ApexGPUModel gpu;
@@ -34,6 +35,14 @@ int main() {
 
     gpu.execute({0xFF, Opcode::VABSDELTA, 4, 1, 2, 0});
     expect_eq(gpu.get_register(4), vec({2, 4, 4, 6, 10, 3, 0, 32}));
+
+    // VABSDELTA is saturating: the mathematical magnitude can require 32
+    // unsigned bits, but ApexGPU lanes are signed. This is the edge class that
+    // randomized RTL verification exposed at seed 20260901 / instruction 483.
+    gpu.set_register(10, vec({1184627044, 0, 0, 0, 0, 0, 0, 0}));
+    gpu.set_register(11, vec({-982709684, 0, 0, 0, 0, 0, 0, 0}));
+    gpu.execute({0x01, Opcode::VABSDELTA, 12, 10, 11, 0});
+    expect_eq(gpu.get_register(12), vec({2147483647, 0, 0, 0, 0, 0, 0, 0}));
 
     gpu.set_register(5, vec({-3, 0, 4, 10, 30, 50, 101, 7}));
     gpu.execute({0xFF, Opcode::VCLAMP, 6, 5, 0, 30});
@@ -48,6 +57,15 @@ int main() {
     gpu.set_register(9, vec({1,1,1,1,1,1,1,1}));
     gpu.execute({0xFF, Opcode::VADD, 8, 8, 9, 0});
     expect_eq(gpu.get_register(8), vec({2,3,4,5,6,7,8,9}));
+
+
+    // M6: architectural state is isolated across warp contexts.
+    gpu.set_register(2, 1, vec({50,51,52,53,54,55,56,57}));
+    gpu.set_register(2, 2, vec({1,1,1,1,1,1,1,1}));
+    gpu.execute({0xFF, Opcode::VADD, 3, 1, 2, 0, 2});
+    expect_eq(gpu.get_register(2, 3), vec({51,52,53,54,55,56,57,58}));
+    // Warp 0's v3 is unchanged by the warp 2 instruction.
+    expect_eq(gpu.get_register(0, 3), vec({6, 6, 10, 10, 2, -3, 18, -8}));
 
     std::cout << "ApexGPU model tests: PASS\n";
     std::cout << "instructions=" << gpu.counters().instructions

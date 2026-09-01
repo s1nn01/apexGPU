@@ -27,10 +27,14 @@ struct Instruction {
     uint8_t src_a{0};
     uint8_t src_b{0};
     int32_t immediate{0};
+    uint8_t warp_id{0};
 
     uint64_t encode() const {
         if (dst > 15 || src_a > 15 || src_b > 15) {
             throw std::invalid_argument("register index must be in [0, 15]");
+        }
+        if (warp_id > 3) {
+            throw std::invalid_argument("warp id must be in [0, 3]");
         }
         uint64_t word = 0;
         word |= static_cast<uint64_t>(lane_mask) << 56;
@@ -39,6 +43,7 @@ struct Instruction {
         word |= static_cast<uint64_t>(src_a & 0xF) << 44;
         word |= static_cast<uint64_t>(static_cast<uint32_t>(immediate)) << 12;
         word |= static_cast<uint64_t>(src_b & 0xF) << 8;
+        word |= static_cast<uint64_t>(warp_id & 0x3) << 6;
         return word;
     }
 
@@ -50,6 +55,7 @@ struct Instruction {
         i.src_a = static_cast<uint8_t>((word >> 44) & 0xF);
         i.immediate = static_cast<int32_t>((word >> 12) & 0xFFFFFFFFULL);
         i.src_b = static_cast<uint8_t>((word >> 8) & 0xF);
+        i.warp_id = static_cast<uint8_t>((word >> 6) & 0x3);
         return i;
     }
 };

@@ -2,8 +2,10 @@ CXX ?= g++
 CXXFLAGS := -std=c++20 -O2 -Wall -Wextra -Wpedantic
 MODEL := model/apex_gpu.cpp
 
-.PHONY: all model-test demo cli vectors regression benchmark rtl-test clean
+.PHONY: all verify model-test demo cli vectors regression benchmark rtl-test rtl-random rtl-suite clean
 all: model-test regression
+
+verify: model-test regression rtl-test rtl-random
 
 build:
 	mkdir -p build
@@ -31,6 +33,12 @@ benchmark: build
 
 rtl-test:
 	./scripts/run_rtl.sh
+
+rtl-random: cli
+	./scripts/run_rtl_random.sh
+
+rtl-suite: cli
+	./scripts/run_rtl_suite.sh
 
 clean:
 	rm -rf build/*
