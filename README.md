@@ -1,10 +1,10 @@
 # ApexGPU
 
-**A small GPU-style SIMD telemetry accelerator with a verification-first workflow.**
+**A GPU-style SIMD telemetry accelerator with a verification-first workflow.**
 
 ApexGPU is a portfolio project built around two things I wanted to learn deeply: **GPU execution architecture** and **high-rate racing telemetry**. The hardware core accepts compact vector instructions and processes eight telemetry channels in parallel, while the surrounding verification stack checks the RTL against an independent C++ golden model.
 
-The MVP is deliberately more than a toy ALU. It includes:
+The project is deliberately more than a toy ALU. It includes:
 
 - 8-lane, 32-bit SIMD datapath
 - 16-entry vector register file
@@ -30,8 +30,6 @@ The MVP therefore includes two domain-specific instructions in addition to conve
 
 - `VABSDELTA`: absolute lane-wise difference, useful for comparing current telemetry with a reference sample.
 - `VCLAMP`: clamp each lane between zero and a scalar limit, useful for sanitising bounded sensor values.
-
-These do **not** make this a fake “F1 GPU”. They are simply a motivating workload layered on a conventional SIMD execution core.
 
 ## Architecture
 
