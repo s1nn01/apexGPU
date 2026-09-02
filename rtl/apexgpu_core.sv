@@ -144,7 +144,7 @@ module apexgpu_core import apexgpu_pkg::*; (
     blocked_count = 0;
 
     for (offset = 0; offset < WARPS; offset = offset + 1) begin
-      candidate = (rr_ptr + offset) % WARPS;
+      candidate = (int'(rr_ptr) + offset) % WARPS;
       if (queue_valid[candidate]) begin
         any_queued = 1'b1;
         if (instruction_blocked(warp_id_t'(candidate), queue_instr[candidate])) begin
@@ -267,8 +267,8 @@ module apexgpu_core import apexgpu_pkg::*; (
         rr_ptr <= selected_warp + warp_id_t'(1);
 
         if (issue_op != OP_VNOP) begin
-          active_lane_ops_o <= active_lane_ops_o + $countones(issue_mask);
-          masked_lane_ops_o <= masked_lane_ops_o + (LANES - $countones(issue_mask));
+          active_lane_ops_o <= active_lane_ops_o + 64'($countones(issue_mask));
+          masked_lane_ops_o <= masked_lane_ops_o + (64'(LANES) - 64'($countones(issue_mask)));
           scoreboard[selected_warp][issue_dst] <= 1'b1;
           if (fwd_a || fwd_b)
             forwarding_events_o <= forwarding_events_o + 1;
@@ -283,7 +283,7 @@ module apexgpu_core import apexgpu_pkg::*; (
       if (any_queued && !selected_valid)
         scoreboard_stall_cycles_o <= scoreboard_stall_cycles_o + 1;
       if (blocked_count != 0)
-        blocked_warp_events_o <= blocked_warp_events_o + blocked_count;
+        blocked_warp_events_o <= blocked_warp_events_o + 64'(blocked_count);
 
       // Host instruction injection.
       if (instr_valid_i && instr_ready_o) begin

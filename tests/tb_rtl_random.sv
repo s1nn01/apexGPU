@@ -191,7 +191,7 @@ module tb_rtl_random;
 
     repeat (2) @(posedge clk);
 
-    if (issued != instruction_count)
+    if (issued != 64'(instruction_count))
       $fatal(1, "instruction replay/drop detected: issued=%0d expected=%0d",
              issued, instruction_count);
 
