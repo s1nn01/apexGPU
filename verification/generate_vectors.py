@@ -8,9 +8,10 @@ from reference import execute
 OPS = list(range(1, 0xC))
 LANES, REGS = 8, 16
 
-def pack(mask: int, op: int, dst: int, a: int, b: int, imm: int) -> int:
+def pack(mask: int, op: int, dst: int, a: int, b: int, imm: int, warp: int = 0) -> int:
     return ((mask & 0xFF) << 56) | ((op & 0xF) << 52) | ((dst & 0xF) << 48) | \
-           ((a & 0xF) << 44) | ((imm & 0xFFFFFFFF) << 12) | ((b & 0xF) << 8)
+           ((a & 0xF) << 44) | ((imm & 0xFFFFFFFF) << 12) | ((b & 0xF) << 8) | \
+           ((warp & 0x3) << 6)
 
 def generate(seed: int, count: int):
     rng = random.Random(seed)
@@ -19,12 +20,11 @@ def generate(seed: int, count: int):
     program = []
     snapshots = []
 
-    # Seed the stream with dependency-heavy directed instructions, then randomise.
     directed = [
-        pack(0xFF, 0x1, 4, 1, 2, 0),      # v4 <- v1 + v2
-        pack(0xFF, 0x3, 5, 4, 3, 0),      # RAW dependency on v4
-        pack(0x55, 0xA, 5, 5, 1, 0),      # dst aliases src, partial mask
-        pack(0xFF, 0xB, 6, 5, 0, 500),    # telemetry clamp
+        pack(0xFF, 0x1, 4, 1, 2, 0),
+        pack(0xFF, 0x3, 5, 4, 3, 0),
+        pack(0x55, 0xA, 5, 5, 1, 0),
+        pack(0xFF, 0xB, 6, 5, 0, 500),
     ]
     for word in directed[:count]:
         execute(regs, word)
@@ -35,7 +35,6 @@ def generate(seed: int, count: int):
         op = rng.choice(OPS)
         dst, a, b = (rng.randrange(REGS) for _ in range(3))
         if rng.random() < 0.35 and program:
-            # Increase dependency density by reading the previous destination.
             prev_dst = (program[-1] >> 48) & 0xF
             a = prev_dst
         mask = rng.randrange(1, 256)

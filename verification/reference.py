@@ -3,6 +3,7 @@ from __future__ import annotations
 
 LANES = 8
 REGS = 16
+WARPS = 4
 
 MNEMONICS = {
     0x0: "VNOP", 0x1: "VADD", 0x2: "VSUB", 0x3: "VMUL",
@@ -25,6 +26,7 @@ def decode(word: int) -> dict:
         "a": (word >> 44) & 0xF,
         "imm": s32((word >> 12) & 0xFFFFFFFF),
         "b": (word >> 8) & 0xF,
+        "warp": (word >> 6) & 0x3,
     }
 
 def apply(op: int, a: int, b: int, imm: int) -> int:
@@ -37,11 +39,12 @@ def apply(op: int, a: int, b: int, imm: int) -> int:
     if op == 0x7: return s32(u32(a) & u32(b))
     if op == 0x8: return s32(u32(a) << (u32(b) & 31))
     if op == 0x9: return int(a < b)
-    if op == 0xA: return s32(abs(a - b))
+    if op == 0xA: return min(abs(a - b), 0x7FFFFFFF)
     if op == 0xB: return max(0, min(a, max(0, imm)))
     return a
 
 def execute(registers: list[list[int]], word: int) -> None:
+    """Execute into one register file. Kept for the original single-warp tests."""
     ins = decode(word)
     if ins["op"] == 0:
         return
@@ -52,3 +55,8 @@ def execute(registers: list[list[int]], word: int) -> None:
         if (ins["mask"] >> lane) & 1:
             out[lane] = apply(ins["op"], old_a[lane], old_b[lane], ins["imm"])
     registers[ins["dst"]] = out
+
+def execute_warped(registers: list[list[list[int]]], word: int) -> None:
+    """Execute into one of four independent warp register files."""
+    ins = decode(word)
+    execute(registers[ins["warp"]], word)

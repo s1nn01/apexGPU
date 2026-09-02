@@ -1,5 +1,6 @@
 name: ApexGPU CI
 on: [push, pull_request]
+
 jobs:
   software-verification:
     runs-on: ubuntu-latest
@@ -7,15 +8,20 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build and unit test golden model
         run: make model-test
-      - name: Differential randomized regression
+      - name: Python/C++ differential randomized regression
         run: make regression
       - name: Telemetry demo
         run: make demo
-  rtl-smoke:
+
+  rtl-verification:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Icarus Verilog
-        run: sudo apt-get update && sudo apt-get install -y iverilog
-      - name: RTL smoke test
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y verilator
+      - name: Directed scoreboard + multi-warp RTL test
         run: make rtl-test
+      - name: Randomized RTL differential suite
+        env:
+          APEXGPU_RTL_COUNT: 500
+        run: make rtl-suite
