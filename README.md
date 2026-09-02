@@ -4,7 +4,7 @@
 
 ApexGPU is a learning microarchitecture built around two things I wanted to understand deeply: **GPU execution/verification** and **high-rate racing telemetry**. The design processes eight 32-bit lanes in parallel and now includes enough frontend and dependency machinery to create realistic verification problems rather than behaving like a standalone vector ALU.
 
-## Current milestone: M6
+The project is deliberately more than a toy ALU. It includes:
 
 The project now includes:
 
@@ -163,86 +163,3 @@ APEXGPU_SEED=123456 APEXGPU_RTL_COUNT=5000 make rtl-random
 ```bash
 make rtl-suite
 ```
-
-### Everything important
-
-```bash
-make verify
-```
-
-Waveforms are written into `build/`, including:
-
-```text
-build/apexgpu.vcd
-build/apexgpu_random.vcd
-```
-
-## Useful counters
-
-The RTL exposes:
-
-- instructions issued;
-- active lane operations;
-- masked lane operations;
-- WB forwarding events;
-- cycles where all queued work is scoreboard-blocked;
-- number of blocked-warp observations;
-- warp-switch events;
-- host queue-backpressure events.
-
-These make it possible to move from “the scheduler seems useful” to actual performance experiments.
-
-## Repository layout
-
-```text
-ApexGPU/
-├── rtl/
-│   ├── apexgpu_pkg.sv
-│   ├── vector_alu.sv
-│   ├── apexgpu_core.sv
-│   └── apexgpu_assertions.sv
-├── model/
-│   ├── instruction.hpp
-│   ├── apex_gpu.hpp
-│   ├── apex_gpu.cpp
-│   └── cli.cpp
-├── verification/
-│   ├── reference.py
-│   ├── differential_regression.py
-│   ├── generate_vectors.py
-│   └── generate_rtl_vectors.py
-├── tests/
-│   ├── model_tests.cpp
-│   ├── tb_apexgpu.sv
-│   └── tb_rtl_random.sv
-├── scripts/
-│   ├── run_rtl.sh
-│   ├── run_rtl_random.sh
-│   └── run_rtl_suite.sh
-└── docs/
-```
-
-## What M4-M6 let me discuss
-
-- why a golden model should be structurally independent from RTL;
-- why randomized testing is biased toward dependency and mask corner cases;
-- how a register scoreboard represents in-flight writers;
-- RAW, WAW and masked old-destination hazards;
-- when a value is safe to forward;
-- why multiple warps can hide dependency latency;
-- how scheduler policy changes performance without changing architectural results;
-- how to make a failing random hardware test reproducible.
-
-## Next: M7
-
-The next architectural milestone is a **vector load/store unit plus banked scratchpad**, driven by synthetic racing-telemetry traces. That will introduce bank conflicts, coalescing and memory-ordering bugs — a new verification problem rather than just more ALU instructions.
-
-See [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md).
-
-## Status
-
-ApexGPU is a learning/portfolio microarchitecture, not production silicon. The focus is correctness, verification depth, debuggability and increasingly realistic GPU execution concepts.
-
-## License
-
-MIT — see `LICENSE`.
