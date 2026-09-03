@@ -4,8 +4,6 @@
 
 ApexGPU is a learning microarchitecture built around two things I wanted to understand deeply: **GPU execution/verification** and **high-rate racing telemetry**. The design processes eight 32-bit lanes in parallel and now includes enough frontend and dependency machinery to create realistic verification problems rather than behaving like a standalone vector ALU.
 
-The project is deliberately more than a toy ALU. It includes:
-
 The project now includes:
 
 - 8-lane x 32-bit SIMD datapath;
